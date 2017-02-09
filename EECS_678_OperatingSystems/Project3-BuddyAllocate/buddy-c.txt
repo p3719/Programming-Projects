@@ -1,0 +1,258 @@
+/**
+ * Buddy Allocator
+ *
+ * For the list library usage, see http://www.mcs.anl.gov/~kazutomo/list/
+ */
+
+/**************************************************************************
+ * Conditional Compilation Options
+ **************************************************************************/
+#define USE_DEBUG 0
+
+/**************************************************************************
+ * Included Files
+ **************************************************************************/
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#include "buddy.h"
+#include "list.h"
+
+/**************************************************************************
+ * Public Definitions
+ **************************************************************************/
+#define MIN_ORDER 12
+#define MAX_ORDER 20
+
+#define PAGE_SIZE (1<<MIN_ORDER)
+/* page index to address */
+#define PAGE_TO_ADDR(page_idx) (void *)((page_idx*PAGE_SIZE) + g_memory)
+
+/* address to page index */
+#define ADDR_TO_PAGE(addr) ((unsigned long)((void *)addr - (void *)g_memory)/ PAGE_SIZE)
+
+/* find buddy address */
+#define BUDDY_ADDR(addr, o) (void *)((((unsigned long)addr - (unsigned long)g_memory) ^ (1<<o)) \
+									 + (unsigned long)g_memory)
+
+#if USE_DEBUG == 1
+#  define PDEBUG(fmt, ...) \
+	fprintf(stderr, "%s(), %s:%d: " fmt,			\
+		__func__, __FILE__, __LINE__, ##__VA_ARGS__)
+#  define IFDEBUG(x) x
+#else
+#  define PDEBUG(fmt, ...)
+#  define IFDEBUG(x)
+#endif
+
+/**************************************************************************
+ * Public Types
+ **************************************************************************/
+typedef struct {
+	struct list_head list;
+	int pageNumber;
+	int o;
+	int free;
+	/* Note: DECLARE more NECESSARY MEMBER VARIABLES if needed*/
+} page_t;
+
+/**************************************************************************
+ * Global Variables
+ **************************************************************************/
+/* free lists*/
+struct list_head free_area[MAX_ORDER+1];
+
+/* memory area */
+char g_memory[1<<MAX_ORDER];
+
+/* page structures */
+page_t g_pages[(1<<MAX_ORDER)/PAGE_SIZE];
+
+/**************************************************************************
+ * Public Function Prototypes
+ **************************************************************************/
+
+/**************************************************************************
+ * Local Functions
+ **************************************************************************/
+
+/**
+ * Initialize the buddy system
+ */
+void buddy_init()
+{
+	int i;
+	int n_pages = (1<<MAX_ORDER) / PAGE_SIZE;
+	for (i = 0; i < n_pages; i++) {
+		g_pages[i].list.next = NULL;
+		g_pages[i].list.prev = NULL;
+		g_pages[i].pageNumber = i;
+		g_pages[i].o = 0;
+		g_pages[i].free = 1;
+	}
+	g_pages[0].o = 1;
+
+	/* initialize freelist */
+	for (i = MIN_ORDER; i <= MAX_ORDER; i++) {
+		INIT_LIST_HEAD(&free_area[i]);
+	}
+
+	/* add the entire memory as a freeblock */
+	g_pages[0].o = MAX_ORDER;
+	list_add(&g_pages[0].list, &free_area[MAX_ORDER]);
+}
+
+int log2(int size)
+{
+    int temp = size;
+    int result = 0;
+    while(temp >>= 1)
+    {
+        result++;
+    }
+
+    //if the answer was exact don't round
+    if(1<<result == size)
+    {
+        return result;
+    }
+    //if it wasn't, round up so we look for a page with larger size
+    return result+1;
+}
+
+int min(int first, int second)
+{
+    return(first < second ? first : second);
+}
+
+page_t* listToPage(struct list_head *listNode)
+{
+    return((page_t*)listNode);
+}
+
+int exp2(int val)
+{
+	int result = 1;
+	for(int i = 0; i < val; i++)
+	{
+		result = result*2;
+	}
+	return result;
+}
+
+/**
+ * Allocate a memory block.
+ *
+ * On a memory request, the allocator returns the head of a free-list of the
+ * matching size (i.e., smallest block that satisfies the request). If the
+ * free-list of the matching block size is empty, then a larger block size will
+ * be selected. The selected (large) block is then splitted into two smaller
+ * blocks. Among the two blocks, left block will be used for allocation or be
+ * further splitted while the right block will be added to the appropriate
+ * free-list.
+ *
+ * @param size size in bytes
+ * @return memory block address
+ */
+void *buddy_alloc(int size)
+{
+	//First find ceiling of log base 2 to get the smallest free_area possible
+	int logCeiling = MIN_ORDER > log2(size) ? MIN_ORDER : log2(size);
+
+	if(logCeiling > MAX_ORDER)
+	{
+		//alloc too big
+		return NULL;
+	}
+
+    int i;
+    //Start with free_area obtained above and move up until you find one that is not empty
+    for(i = logCeiling; i <= MAX_ORDER && list_empty(&free_area[i]); i++) {};
+
+		if(i > MAX_ORDER)
+		{
+			//Memory filled up, no free area for this size alloc
+			return NULL;
+		}
+
+    page_t* smallestFreePage = listToPage(free_area[i].next);
+    list_del(free_area[i].next);
+
+    for(;i > logCeiling; i--)
+    {
+        //split in half... put right into free list one less than i
+        int offset = (1<<(i-1))/PAGE_SIZE;
+        int newFreePage = smallestFreePage->pageNumber + offset;
+        g_pages[newFreePage].o = i-1;
+        list_add_tail(&g_pages[newFreePage].list,&free_area[i-1]);
+        g_pages[newFreePage].free = 1;
+    }
+
+    smallestFreePage->o = logCeiling;
+    smallestFreePage->free = 0;
+	return &g_memory[smallestFreePage->pageNumber*PAGE_SIZE];
+}
+
+/**
+ * Free an allocated memory block.
+ *
+ * Whenever a block is freed, the allocator checks its buddy. If the buddy is
+ * free as well, then the two buddies are combined to form a bigger block. This
+ * process continues until one of the buddies is not free.
+ *
+ * @param addr memory block address to be freed
+ */
+void buddy_free(void *addr)
+{
+		//take void* to index
+    unsigned long pageIndex = ADDR_TO_PAGE(addr);
+
+
+    int repeat = 1;
+    while(repeat && g_pages[pageIndex].o != MAX_ORDER)
+    {
+        repeat = 0;
+
+        //find buddy
+        unsigned long buddyIndex = ADDR_TO_PAGE(BUDDY_ADDR(PAGE_TO_ADDR(pageIndex), g_pages[pageIndex].o));
+
+        // If the buddy is free then join them into one larger page
+        if(g_pages[buddyIndex].free && g_pages[buddyIndex].o == g_pages[pageIndex].o)
+        {
+            repeat = 1;
+						//figure out which one is the front of the page
+            g_pages[buddyIndex].o = buddyIndex > pageIndex ? 0 : g_pages[pageIndex].o + 1;
+            g_pages[pageIndex].o = buddyIndex > pageIndex ? g_pages[pageIndex].o + 1 : 0;
+
+						//remove the buddy from the freelist it resides in
+            list_del(&g_pages[buddyIndex].list);
+            g_pages[buddyIndex].free = 0;
+
+						//chose the smaller of the two pages to be the head of the larger chunk of memory
+            pageIndex = min(pageIndex,buddyIndex);
+        }
+
+    }
+    list_add_tail(&g_pages[pageIndex].list,&free_area[g_pages[pageIndex].o]);
+    g_pages[pageIndex].free = 1;
+}
+
+/**
+ * Print the buddy system status---order oriented
+ *
+ * print free pages in each order.
+ */
+void buddy_dump()
+{
+	int o;
+	for (o = MIN_ORDER; o <= MAX_ORDER; o++) {
+		struct list_head *pos;
+		int cnt = 0;
+		list_for_each(pos, &free_area[o]) {
+			cnt++;
+		}
+		printf("%d:%dK ", cnt, (1<<o)/1024);
+	}
+	printf("\n");
+}

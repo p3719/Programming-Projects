@@ -1,0 +1,25 @@
+ReadMe
+EECS 690: Data Mining Project 1
+Name: Philip Wood
+KUID: 2631449
+
+I've included a makefile in my project so you can compile the project 
+by simply typing "make".  Run the project by typing "./program".  My program
+works on almost all of the inputs provided, however it doesn't work on numeric
+datasets that have attribute-concept values ("-"), but Jerzy said that we wouldn't
+need to be able to run numeric datasets with missing values.  If you run my
+program on a numeric dataset with attribute-concept values, it will most likely
+generate an infinite ruleset.
+
+The commands for the program once it's started are pretty straightforward and
+match the requirements in the write-up. First provide the name of the input file
+which must be in the current directory.  Then decide whether you would like to
+generate certain or possible rules.  Finally provide the name of the output file.
+You don't need to add the ".txt" extension, it will be done for you.  If at any
+point the input that you provide isn't valid then the program should let you know
+and ask again.
+
+Please compile my program on cycle2 or cycle3.  At some point I use regex which
+was integrated into gcc in version 4.9.  Cycle2 and cycle3 are on version 6.1
+but for some reason they still have cycle1 on version 4.8 last I checked; just
+be aware.  C'mon EECS...

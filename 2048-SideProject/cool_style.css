@@ -1,0 +1,200 @@
+.overallFrame {
+	width: 500px;
+	height: 500px;
+	background-color:  #bfbfbf;
+	border-radius: 10px;
+	font-size: 0;
+	position: relative;
+}
+
+@keyframes singlePulse {
+  0% {
+    transform: scale(1.0);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1.0);
+  }
+}
+
+@-webkit-keyframes singlePulse {
+  0% {
+    -webkit-transform: scale(1.0);
+  }
+  50% {
+    -webkit-transform: scale(1.05);
+  }
+  100% {
+    -webkit-transform: scale(1.0);
+  }
+}
+
+@-moz-keyframes singlePulse {
+  0% {
+    -moz-transform: scale(1.0);
+  }
+  50% {
+    -moz-transform: scale(1.05);
+  }
+  100% {
+    -moz-transform: scale(1.0);
+  }
+}
+
+@-o-keyframes singlePulse {
+  0% {
+    -o-transform: scale(1.0);
+  }
+  50% {
+    -o-transform: scale(1.05);
+  }
+  100% {
+    -o-transform: scale(1.0);
+  }
+}
+
+.pulse {
+	-webkit-animation: singlePulse .1s linear;
+	-moz-animation:    singlePulse .1s linear;
+	-o-animation:      singlePulse .1s linear;
+	animation:         singlePulse .1s linear;
+}
+
+/*.overallFrame .cell {
+	background-color:    #d9d9d9;
+	width: 20%;
+	height: 20%;
+	border-radius: 10px;
+	display: block;
+	float: left;
+	margin: 2%;
+	font-size: 32px;
+
+	text-align: center;
+	vertical-align: middle;
+	line-height: 100px;
+}
+To use this method you also need to make make an important 4% style for the outer most cols and rows*/
+
+
+.overallFrame .cell {
+	position: absolute;
+	width: 22.5%;
+	height: 22.5%;
+	border-radius: 5px;
+	background-color:    #d9d9d9;
+	font-size: 32px;
+	font-family:  ‘Arial Black’, Gadget, sans-serif;
+	font-weight: bold;
+	display: block;
+
+	text-align: center;
+	vertical-align: middle;
+	line-height: 100px;
+}
+
+.overallFrame .overlay {
+	z-index: 999;
+
+	-webkit-transition: all .1s linear;
+	-moz-transition: all .1s linear;
+ 	-o-transition: all .1s linear;
+	transition: all .1s linear;
+}
+
+.col-0 {
+	margin-left: 2%;
+}
+
+.col-1 {
+	margin-left: 26.5%;
+}
+
+.col-2 {
+	margin-left: 51%;
+}
+
+.col-3 {
+	margin-left: 75.5%;
+}
+
+.row-0 {
+	margin-top: 2%;
+}
+
+.row-1 {
+	margin-top: 26.5%;
+}
+
+.row-2 {
+	margin-top: 51%;
+}
+
+.row-3 {
+	margin-top: 75.5%;
+}
+
+.color-2 {
+	background-color: #FAF7D3 !important;
+}
+
+.color-4 {
+	background-color: #F5F1B1 !important;
+}
+
+.color-8 {
+	background-color: #f78e48 !important;
+	color: white !important;
+}
+
+.color-16 {
+	background-color: #fc5e2e !important;
+	color: white !important;
+}
+
+.color-32 {
+	background-color: #ff3333 !important;
+	color: white !important;
+}
+
+.color-64 {
+	background-color: #ff0000 !important;
+	color: white !important;
+}
+
+.color-128 {
+	background-color: #EDE966 !important;
+	color: white !important;
+}
+
+.color-256 {
+	background-color: #E8E455 !important;
+	color: white !important;
+}
+
+.color-512 {
+	background-color: #FFF45A !important;
+	color: white !important;
+}
+
+.color-1024 {
+	background-color: #FFF437 !important;
+	color: white !important;
+}
+
+.color-2048 {
+	background-color: #EDE311 !important;
+	color: white !important;
+}
+
+.color-4096 {
+	background-color: #023140 !important;
+	color: white !important;
+}
+
+.color-8192 {
+	background-color: #023140 !important;
+	color: white !important;
+}
